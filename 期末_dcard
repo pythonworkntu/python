@@ -1,0 +1,132 @@
+import pandas as pd
+import requests
+from requests_html import HTML
+import re
+import time
+from bs4 import BeautifulSoup
+
+
+
+#看板中英文對應字典:
+url = 'https://www.dcard.tw/service/api/v2/forums'
+resq = requests.get(url)
+rejs = resq.json()
+forums_data = pd.DataFrame(rejs)
+forums_name_data = list(forums_data['name'])
+forums_alias_data = list(forums_data['alias'])
+forums_dict = {}
+for i in range(len(forums_name_data)):
+  forums_dict[forums_name_data[i]] = forums_alias_data[i]
+
+
+
+
+
+
+#不分看板前100文章:
+ask_1 = input('您是否要查詢dcard前100熱門文章的關鍵字呢? (yes or no): ')
+if ask_1 == 'yes':
+  url = 'https://www.dcard.tw/service/api/v2/posts?popular=true&limit=100'
+  resq = requests.get(url)
+  rejs = resq.json()
+  total_data = pd.DataFrame(rejs)
+  id_list = list(total_data['id'])
+
+  for i in id_list:
+    url = 'https://www.dcard.tw/service/api/v2/posts/%s' % i
+    requ = requests.get(url)
+    time.sleep(5)
+    article = requ.json()
+    article = article['content']
+    print(id_list.index(i) + 1)
+    print(article)
+    if i != (len(id_list) - 1):
+      print('..............next article..............')
+
+else:  # 前10看板:
+  ask_2 = input('您是否要查詢dcard前10熱門看板文章的關鍵字呢? (yes or no): ')
+  if ask_2 == 'yes':
+    response = requests.get("https://www.dcard.tw/forum/popular")
+    soup = BeautifulSoup(response.text, 'html.parser')
+    forums = soup.find_all(class_ = 'nvtgdu-5 gkJkzl')
+    top_ten_forums = []
+    for i in forums:
+      a = i.get_text()
+      top_ten_forums.append(a)
+    for a in range(10):
+      if a == 0:
+        print('以下為熱門前10看板:')
+      print('Top' + str(a + 1) + ' ' + top_ten_forums[a])
+
+    correct = 'false'
+    while correct != 'true':
+      forums_name = input('請輸入您想觀看的前10看板名稱: ')
+      if (forums_name in top_ten_forums) and (forums_name in list(forums_dict.keys())):
+        forums_name = forums_dict[forums_name]
+        correct = 'true'
+      elif (forums_name in list(forums_dict.keys())) and (forums_name not in top_ten_forums):
+        sign = input('您所輸入的看板名稱未在前10排行榜上，是否繼續前往該看板呢? (yes or no): ')
+        if sign == 'yes':
+          forums_name = forums_dict[forums_name]
+          correct = 'true'
+        else:
+          correct = 'false'
+      else:
+        while forums_name not in list(forums_dict.keys()):
+          forums_name = input('無此看板名稱，請再次輸入看板名稱: ')
+        if (forums_name in top_ten_forums) and (forums_name in list(forums_dict.keys())):
+          forums_name = forums_dict[forums_name]
+          correct = 'true'
+        elif (forums_name in list(forums_dict.keys())) and (forums_name not in top_ten_forums):
+          sign = input('您所輸入的看板名稱未在前10排行榜上，是否繼續前往該看板呢? (yes or no): ')
+          if sign == 'yes':
+            forums_name = forums_dict[forums_name]
+            correct = 'true'
+          else:
+            correct = 'false'
+
+    url = 'https://www.dcard.tw/service/api/v2/forums/%s/posts?popular=true&limit=100' % forums_name
+    resq = requests.get(url)
+    rejs = resq.json()
+    total_data = pd.DataFrame(rejs)
+    id_list = list(total_data['id'])
+
+    for i in id_list:
+      url = 'https://www.dcard.tw/service/api/v2/posts/%s' % i
+      requ = requests.get(url)
+      time.sleep(5)
+      article = requ.json()
+      article = article['content']
+      print(id_list.index(i) + 1)
+      print(article)
+      if i != (len(id_list) - 1):
+        print('..............next article..............')
+
+
+  else:  #全部看板:
+    ask_3 = input('您是否要查詢dcard各別看板文章的關鍵字呢? (yes or no): ')
+    if ask_3 == 'yes':
+      forums_name = input('請輸入看板名稱: ')
+      if forums_name in list(forums_dict.keys()):
+        forums_name = forums_dict[forums_name]
+      else:
+        while forums_name not in list(forums_dict.keys()):
+          forums_name = input('無此看板名稱，請再次輸入看板名稱: ')
+        forums_name = forums_dict[forums_name]
+
+      url = 'https://www.dcard.tw/service/api/v2/forums/%s/posts?popular=true&limit=100' % forums_name
+      resq = requests.get(url)
+      rejs = resq.json()
+      total_data = pd.DataFrame(rejs)
+      id_list = list(total_data['id'])
+
+      for i in id_list:
+        url = 'https://www.dcard.tw/service/api/v2/posts/%s' % i
+        requ = requests.get(url)
+        time.sleep(5)
+        article = requ.json()
+        article = article['content']
+        print(id_list.index(i) + 1)
+        print(article)
+        if i != (len(id_list) - 1):
+          print('..............next article..............')
